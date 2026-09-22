@@ -1,0 +1,5 @@
+# Host-side dependencies: everything the app needs + the offline evaluation pipeline.
+-r requirements.txt
+deepeval==4.2.3
+# DeepEval's on-disk test-run files use portalocker shared locks, which need pywin32 on Windows.
+pywin32; sys_platform == "win32"

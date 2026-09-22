@@ -1,0 +1,9 @@
+.env
+.venv
+data
+eval
+.deepeval
+.pytest_cache
+**/__pycache__
+*.pyc
+test_e2e.py

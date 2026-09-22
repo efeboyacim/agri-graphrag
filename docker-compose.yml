@@ -1,0 +1,40 @@
+services:
+  neo4j:
+    image: neo4j:5.26-community
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-agrigraph-demo-pw}
+    ports:
+      # Host ports are overridable (e.g. NEO4J_BOLT_PORT=17687) if another Neo4j already uses them.
+      - "${NEO4J_HTTP_PORT:-7474}:7474"   # browser UI
+      - "${NEO4J_BOLT_PORT:-7687}:7687"   # bolt (host-side seed / e2e / eval scripts connect here)
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p \"$${NEO4J_AUTH#neo4j/}\" 'RETURN 1' || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 20s
+
+  app:
+    build: .
+    env_file: .env
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      # LanceDB lives inside the image (seeded at build time), not on a Windows bind mount.
+      LANCEDB_PATH: /app/data/lancedb
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    # No restart policy on purpose: if PORTKEY_API_KEY is missing the app must exit visibly.
+
+volumes:
+  neo4j_data:
